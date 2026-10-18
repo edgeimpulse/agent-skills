@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://skills.sh/edgeimpulse/agent-tools"><img src="https://skills.sh/b/edgeimpulse/agent-tools" alt="skills.sh"></a>
+  <a href="https://skills.sh/edgeimpulse/agent-skills"><img src="https://skills.sh/b/edgeimpulse/agent-skills" alt="skills.sh"></a>
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/Agent%20Skills-spec-3B47C2" alt="Agent Skills specification"></a>
 </p>
 
@@ -28,7 +28,7 @@ Every skill follows the [Agent Skills specification](https://agentskills.io/spec
 Install the whole catalog with the [`skills`](https://www.npmjs.com/package/skills) CLI. You'll need [Node.js](https://nodejs.org) and Git.
 
 ```bash
-npx skills add edgeimpulse/agent-tools
+npx skills add edgeimpulse/agent-skills
 ```
 
 Then ask your agent for something like:
@@ -84,19 +84,19 @@ The [`skills`](https://github.com/vercel-labs/skills) CLI from Vercel installs s
 
 ```bash
 # See what's available without installing anything
-npx skills add edgeimpulse/agent-tools --list
+npx skills add edgeimpulse/agent-skills --list
 
 # Pick skills and agents interactively
-npx skills add edgeimpulse/agent-tools
+npx skills add edgeimpulse/agent-skills
 
 # Install specific skills by name
-npx skills add edgeimpulse/agent-tools --skill ei-api --skill ei-firmware-arduino
+npx skills add edgeimpulse/agent-skills --skill ei-api --skill ei-firmware-arduino
 
 # Install the whole catalog to every detected agent, no prompts
-npx skills add edgeimpulse/agent-tools --all
+npx skills add edgeimpulse/agent-skills --all
 
 # Install the whole catalog, but choose the agents yourself
-npx skills add edgeimpulse/agent-tools --skill '*' --agent claude-code --yes
+npx skills add edgeimpulse/agent-skills --skill '*' --agent claude-code --yes
 ```
 
 Experimental skills appear alongside stable ones in all of these. Use `--agent` to target specific agents and `--yes` to skip the prompts in CI.
@@ -112,7 +112,7 @@ Everything installs into the current project unless you pass `-g`:
 | Global | `-g`, `--global` | `~/<agent>/skills/` in your home directory |
 
 ```bash
-npx skills add edgeimpulse/agent-tools --skill ei-api --global --agent claude-code --yes
+npx skills add edgeimpulse/agent-skills --skill ei-api --global --agent claude-code --yes
 ```
 
 </details>
@@ -139,7 +139,7 @@ Run `npx skills remove` with no arguments to pick from the installed skills inte
 <summary><strong>Try a skill without installing it</strong></summary>
 
 ```bash
-npx skills use edgeimpulse/agent-tools@ei-api --agent claude-code
+npx skills use edgeimpulse/agent-skills@ei-api --agent claude-code
 ```
 
 </details>
@@ -151,7 +151,7 @@ Skills in this catalog were previously published without the `ei-` prefix (`api`
 
 ```bash
 npx skills remove api
-npx skills add edgeimpulse/agent-tools --skill ei-api
+npx skills add edgeimpulse/agent-skills --skill ei-api
 ```
 
 </details>
@@ -178,7 +178,7 @@ After a push to `main`, the version workflow increments the patch version once f
 
 We welcome bug reports, fixes, and new skills.
 
-- **Found a problem?** [Open an issue](https://github.com/edgeimpulse/agent-tools/issues) with the prompt you used and what the agent did.
+- **Found a problem?** [Open an issue](https://github.com/edgeimpulse/agent-skills/issues) with the prompt you used and what the agent did.
 - **Want to improve a skill or add one?** Open a pull request and follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Resources
