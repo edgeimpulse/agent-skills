@@ -19,7 +19,7 @@
 
 ---
 
-Agent Skills are folders of instructions, scripts, and references that coding agents load when a task needs them. The skills in this repository give agents such as Claude Code, Codex, Cursor, and OpenCode the know-how to work with Edge Impulse: the Studio and Ingestion APIs, firmware for Arduino, STM32, Zephyr, and Raspberry Pi, and custom blocks.
+Agent Skills are folders of instructions, scripts, and references that coding agents load when a task needs them. The skills in this repository give agents such as Claude Code, Codex, Cursor, and OpenCode the know-how to work with Edge Impulse: the Studio and Ingestion APIs, Studio extensions, firmware for Arduino, STM32, Zephyr, and Raspberry Pi, and custom blocks.
 
 Every skill follows the [Agent Skills specification](https://agentskills.io/specification), and every skill name starts with `ei-` so it's easy to spot next to skills from other catalogs.
 
@@ -37,6 +37,7 @@ Then ask your agent for something like:
 - "Write a Python script that uploads every WAV file in this folder to my Edge Impulse project."
 - "Run my object detection model on a Raspberry Pi camera feed."
 - "Scaffold a custom learning block that trains a PyTorch model."
+- "Build a Studio extension that charts the label balance of my training data."
 
 Your agent picks the right skill from its description and loads it automatically.
 
@@ -49,6 +50,12 @@ Stable skills are ready for everyday use. Experimental skills are newer, may cha
 | Skill | Status | What it does |
 | --- | --- | --- |
 | [`ei-api`](skills/ei-api) | Stable | Edge Impulse Studio, Ingestion, and Remote Management APIs, CLI tools, Linux runners, and SDKs |
+
+### Studio extensions
+
+| Skill | Status | What it does |
+| --- | --- | --- |
+| [`ei-build-studio-extensions`](skills/ei-build-studio-extensions) | Stable | Web apps that run inside Studio, in any stack: postMessage API keys, Studio APIs, and shared state |
 
 ### Device firmware
 

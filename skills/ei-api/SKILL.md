@@ -1,6 +1,6 @@
 ---
 name: ei-api
-description: Work with the Edge Impulse Studio, Ingestion, and Remote Management APIs; CLI tools; Linux runners; SDKs; and custom blocks. Use for project and sample management, data upload, model training and testing, deployment builds, device control, job monitoring, automation, or any programmatic Edge Impulse platform integration.
+description: Work with the Edge Impulse Studio, Ingestion, and Remote Management APIs; CLI tools; Linux runners; SDKs; custom blocks; and Studio extension registration. Use for project and sample management, data upload, model training and testing, deployment builds, device control, job monitoring, registering or enabling Studio extensions, automation, or any programmatic Edge Impulse platform integration. To build the extension web app itself, use ei-build-studio-extensions.
 metadata:
   version: "1.0.3"
 ---
@@ -24,6 +24,7 @@ Use the detailed [reference](references/REFERENCE.md) selectively. For endpoints
 - Read **CLI Tools** for daemon, uploader, data forwarder, runner, and block workflows.
 - Read **Linux CLI** for EIM deployment and inference.
 - Read **Custom Blocks** for organization block development.
+- Read **Studio Extensions** to register, update, enable, or list Studio extensions, or to script extension shared state. To build the extension web app itself (the embedded iframe, `postMessage` API key handshake, Content-Security-Policy, and UI), use the `ei-build-studio-extensions` skill instead.
 - Read **Common Recipes & Quick Reference** for ready-to-adapt commands and Python patterns.
 
 ## Execution workflow

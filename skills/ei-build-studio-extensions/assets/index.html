@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>My Edge Impulse extension</title>
+    <!--
+        Starter for an Edge Impulse Studio extension. It is deliberately
+        unstyled: bring your own CSS, component library or framework.
+
+        Files:  index.html  ei-extension.js  server.js
+        Run:    node server.js   (then open http://localhost:8080/)
+
+        Inside Studio the API key arrives over postMessage. Opened on its own,
+        the page shows a connect form instead.
+    -->
+</head>
+<body>
+    <main>
+        <h1>My Edge Impulse extension</h1>
+        <p id="status" role="status" aria-live="polite">Loading…</p>
+
+        <form id="connect" hidden novalidate autocomplete="off">
+            <p>
+                Open this page from your project in Edge Impulse Studio, or connect with a
+                project API key from the <strong>Keys</strong> tab of the project dashboard.
+                The key is kept in memory only.
+            </p>
+            <p>
+                <label for="apiKey">Project API key</label><br>
+                <input id="apiKey" name="apiKey" type="password" autocomplete="off"
+                    spellcheck="false" placeholder="ei_…" aria-describedby="connect-error">
+            </p>
+            <details id="advanced">
+                <summary>Advanced</summary>
+                <p id="studioHost-field">
+                    <label for="studioHost">Studio host</label><br>
+                    <input id="studioHost" name="studioHost" type="url" autocomplete="off"
+                        placeholder="https://studio.edgeimpulse.com">
+                </p>
+                <p id="ingestionHost-field">
+                    <label for="ingestionHost">Ingestion host</label><br>
+                    <input id="ingestionHost" name="ingestionHost" type="url" autocomplete="off"
+                        placeholder="https://ingestion.edgeimpulse.com">
+                </p>
+                <p>Leave blank to use the public Edge Impulse hosts.</p>
+            </details>
+            <p id="connect-error" role="alert"></p>
+            <button type="submit">Connect</button>
+        </form>
+
+        <section id="app" hidden aria-labelledby="project-name">
+            <h2 id="project-name"></h2>
+            <dl>
+                <dt>Training samples</dt>
+                <dd id="sample-count"></dd>
+                <dt>Last opened (shared with your team)</dt>
+                <dd id="last-opened"></dd>
+            </dl>
+            <p id="empty" hidden>No training data yet. Add some in Data acquisition.</p>
+            <ul id="samples"></ul>
+        </section>
+    </main>
+
+    <!-- Edge Impulse API bindings: defines the EdgeImpulseApi global. -->
+    <script src="https://studio.edgeimpulse.com/api-bindings/browser/edge-impulse-api.js"></script>
+    <script type="module">
+        import {
+            connectInStudio, connectStandalone, describeError, isEmbedded, readStudioContext,
+            resolveProjectId, SharedStateClient, SharedStateUnavailableError, startHeightReporter,
+        } from './ei-extension.js';
+
+        // Exact origins you also trust with the key, such as a self-hosted
+        // Studio. No wildcards. Ships empty on purpose.
+        const TRUSTED_ORIGINS = [];
+
+        // Capture once, before anything rewrites the URL.
+        const context = readStudioContext();
+        const $ = (id) => document.getElementById(id);
+
+        function setStatus(message) {
+            $('status').textContent = message;
+            $('status').hidden = !message;
+        }
+
+        async function start(conn) {
+            startHeightReporter(conn.studioHost);
+            setStatus('Loading project…');
+
+            const api = new EdgeImpulseApi({ endpoint: conn.studioHost });
+            await api.authenticate({ method: 'apiKey', apiKey: conn.apiKey });
+
+            // The key belongs to one project: resolve it, never ask for it.
+            const projectId = await resolveProjectId(conn);
+            const [{ project }, { samples, totalCount }] = await Promise.all([
+                api.projects.getProjectInfo(projectId),
+                api.rawData.listSamples(projectId, { category: 'training', limit: 20 }),
+            ]);
+
+            $('project-name').textContent = project.name;
+            $('sample-count').textContent = String(totalCount);
+            $('empty').hidden = totalCount > 0;
+            $('samples').replaceChildren(...samples.map((s) => {
+                const li = document.createElement('li');
+                li.textContent = `${s.filename} (${s.label})`;
+                return li;
+            }));
+
+            await showLastOpened(conn, projectId);
+            $('app').hidden = false;
+            setStatus('');
+        }
+
+        // Shared state: one small value saved on the project for every user.
+        async function showLastOpened(conn, projectId) {
+            const state = new SharedStateClient(conn, projectId);
+            try {
+                const previous = await state.readJson('last_opened');
+                $('last-opened').textContent = previous?.at
+                    ? new Date(previous.at).toLocaleString()
+                    : 'Never';
+                await state.writeResolving('last_opened', JSON.stringify({ at: new Date().toISOString() }));
+            } catch (err) {
+                // Keys pasted into the connect form aren't attached to the
+                // extension, so they can't use shared state.
+                $('last-opened').textContent = err instanceof SharedStateUnavailableError
+                    ? 'Available when opened from Studio'
+                    : `Unavailable: ${describeError(err)}`;
+            }
+        }
+
+        function showConnectForm(message = '') {
+            setStatus(message);
+            // A host passed in the URL wins: drop the matching field.
+            if (context.studioHost) $('studioHost-field').remove();
+            if (context.ingestionHost) $('ingestionHost-field').remove();
+            if (context.studioHost && context.ingestionHost) $('advanced').remove();
+            $('connect').hidden = false;
+
+            $('connect').addEventListener('submit', (ev) => {
+                ev.preventDefault();
+                let conn;
+                try {
+                    conn = connectStandalone($('apiKey').value, {
+                        context,
+                        trustedOrigins: TRUSTED_ORIGINS,
+                        overrides: {
+                            studioHost: $('studioHost')?.value,
+                            ingestionHost: $('ingestionHost')?.value,
+                        },
+                    });
+                } catch (err) {
+                    $('connect-error').textContent = describeError(err);
+                    if ($('advanced') && /host/i.test(describeError(err))) $('advanced').open = true;
+                    return;
+                }
+                $('apiKey').value = '';
+                $('connect-error').textContent = '';
+                $('connect').hidden = true;
+                start(conn).catch((err) => {
+                    fail(err);
+                    $('connect').hidden = false;    // let them try another key
+                });
+            });
+        }
+
+        function fail(err) {
+            $('app').hidden = true;
+            setStatus(`Something went wrong: ${describeError(err)}`);
+        }
+
+        try {
+            const conn = await connectInStudio({ context, trustedOrigins: TRUSTED_ORIGINS });
+            if (conn) {
+                await start(conn);
+            } else if (context.keyViaPostMessage && !isEmbedded()) {
+                showConnectForm('This page expects to run inside Edge Impulse Studio.');
+            } else {
+                showConnectForm();
+            }
+        } catch (err) {
+            fail(err);
+        }
+    </script>
+</body>
+</html>

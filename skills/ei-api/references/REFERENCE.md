@@ -9,7 +9,8 @@
 6. [CLI Tools](#cli-tools)
 7. [Linux CLI](#linux-cli)
 8. [Custom Blocks](#custom-blocks)
-9. [Common Recipes & Quick Reference](#common-recipes--quick-reference)
+9. [Studio Extensions](#studio-extensions)
+10. [Common Recipes & Quick Reference](#common-recipes--quick-reference)
 
 ---
 
@@ -27,7 +28,8 @@ Edge Impulse is the leading development platform for machine learning on edge de
 - **Sample**: A single data item (time-series, image, audio, video) with a label, stored in training or testing dataset.
 - **Device**: A physical board or virtual device connected to a project for data acquisition or inference.
 - **Organization**: Groups projects, users, and custom blocks under an enterprise entity.
-- **Block**: A containerized (Docker) extension — custom DSP, ML, transformation, or deployment logic.
+- **Block**: A containerized (Docker) unit of custom DSP, ML, transformation, or deployment logic.
+- **Studio extension**: A web app that Studio embeds in an iframe as a page in a project. It is not a block: it runs in the user's browser, not in Edge Impulse's infrastructure. See [Studio Extensions](#studio-extensions).
 
 ### Base URLs
 | Service | URL |
@@ -634,7 +636,7 @@ curl http://localhost:4911/api/info
 
 ## Custom Blocks
 
-Blocks are Docker-containerized extensions that add custom logic to Edge Impulse. They can be written in any language.
+Blocks are Docker containers that add custom logic to Edge Impulse. They can be written in any language. (Studio extensions, which are embedded web apps, are covered separately in [Studio Extensions](#studio-extensions).)
 
 ### Block Types
 
@@ -716,6 +718,68 @@ edge-impulse-blocks --api-key ei_...    # API key auth
 edge-impulse-blocks --clean             # Reset credentials
 edge-impulse-blocks info                # View current config
 ```
+
+---
+
+## Studio Extensions
+
+A Studio extension is a web app, hosted anywhere over HTTPS, that Studio embeds in an iframe as a page in a project. Studio passes the project context in URL query parameters and hands the app a short-lived, project-scoped API key over `postMessage`.
+
+This section covers the API calls for registering and managing extensions from a script. **To build the extension app itself** (the key handshake, the iframe sandbox, the Content-Security-Policy header, and the UI), use the `ei-build-studio-extensions` skill.
+
+> These endpoints aren't in `openapi.yml` yet. Take exact names and parameters from the API bindings' type declarations: `https://studio.edgeimpulse.com/api-bindings/browser/edge-impulse-api.d.ts`, or the `edge-impulse-api` npm package.
+
+### Register and manage extensions (organization)
+
+Extensions belong to an organization, or to your personal developer profile. These calls need an organization API key or a JWT. Never make them from inside an extension.
+
+| Method | Endpoint | Bindings method (`api.organizationBlocks`) |
+|--------|----------|--------------------------------------------|
+| GET | `/api/organizations/{organizationId}/extension` | `listOrganizationExtensionBlocks` |
+| POST | `/api/organizations/{organizationId}/extension` | `addOrganizationExtensionBlock` (multipart form) |
+| GET | `/api/organizations/{organizationId}/extension/{extensionId}` | `getOrganizationExtensionBlock` |
+| POST | `/api/organizations/{organizationId}/extension/{extensionId}` | `updateOrganizationExtensionBlock` (multipart form) |
+| DELETE | `/api/organizations/{organizationId}/extension/{extensionId}` | `deleteOrganizationExtensionBlock` |
+
+Main registration fields:
+
+| Field | Values |
+|-------|--------|
+| `name`, `description`, `url` | Required. `url` must be HTTPS (`http://localhost` is allowed for development). |
+| `navbarLocation` | Required. Where the extension appears, for example `project`, `impulse`, `dsp_block`, `learn_block`, `data_acquisition`, `deployment`, or `organization_dashboard`. |
+| `requiredApiKeyRole` | Required. `readonly`, `ingestiononly`, `ingestion_deployment`, or `admin`. Pick the least that works. |
+| `authMethod` | Required. Use `api_key_via_postmessage`. The legacy `api_key_via_url` leaks the key into URLs and logs. |
+| `visibility` | `project` (with `onlyAvailableInProjectId`), `organization` (default), or `everyone` |
+| `publicProjectTierAvailability` | With `everyone`: `enterprise-only`, `all-projects`, or `all-projects-including-whitelabels` |
+| `requireAdminInstall`, `hideSideMenu`, `showOnLearnBlockTypes`, `repositoryUrl`, `logo`, `navbarIcon` | Optional |
+
+### Enable extensions on a project
+
+| Method | Endpoint | Bindings method (`api.projects`) |
+|--------|----------|----------------------------------|
+| GET | `/api/{projectId}/extensions/available` | `listProjectAvailableExtensions` |
+| GET | `/api/{projectId}/extensions/active` | `getProjectActiveExtensions` |
+| POST | `/api/{projectId}/extensions/active/add` | `addProjectActiveExtension` (body `{ "extensionId": … }`) |
+| DELETE | `/api/{projectId}/extensions/active/{projectExtensionId}` | `removeProjectActiveExtension` |
+
+Removing an extension from a project revokes its keys and deletes its shared state.
+
+### Shared state
+
+Versioned blobs that an extension stores on a project, visible to every user of that extension in the project. These calls only work with a key that Studio issued to the extension. A project API key from the dashboard is rejected.
+
+| Method | Endpoint | Bindings method (`api.projects`) |
+|--------|----------|----------------------------------|
+| GET | `/api/{projectId}/extensions/shared-state/list` | `getExtensionSharedStateList` |
+| GET | `/api/{projectId}/extensions/shared-state?key=…` | `getExtensionSharedState` (version in the `x-version` response header; `0` means no state) |
+| POST | `/api/{projectId}/extensions/shared-state?key=…` | `setExtensionSharedState` (multipart `state` file and `currentVersion`; a stale `currentVersion` is a conflict) |
+| DELETE | `/api/{projectId}/extensions/shared-state?key=…` | `deleteExtensionSharedState` |
+
+See the `ei-build-studio-extensions` skill for key naming rules, size limits, and conflict handling.
+
+### Identify a key
+
+`GET /api/projects/api-key-info` (`api.projects.getCurrentApiKeyInfo()`) returns the `projectId`, `role`, and, for short-lived keys such as those Studio issues to extensions, `expires`. Use it to resolve the project from a key instead of asking for a project ID.
 
 ---
 
@@ -927,6 +991,9 @@ export EI_PROJECT_ID="12345"
 | Set multi-label segments | `POST /api/{projectId}/raw-data/{sampleId}/structured-labels` |
 | List devices | `GET /api/{projectId}/devices` |
 | Deployment targets | `GET /api/deployment/targets` |
+| Identify an API key | `GET /api/projects/api-key-info` |
+| Register a Studio extension | `POST /api/organizations/{organizationId}/extension` |
+| Enable an extension on a project | `POST /api/{projectId}/extensions/active/add` |
 
 ## Source Repositories
 
